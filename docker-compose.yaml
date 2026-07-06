@@ -1,0 +1,367 @@
+networks:
+  protheus_network:
+    name: protheus_network
+    driver: bridge
+
+services:
+  # ----------------------------------------------------------------------------
+  # INFRA & CONNECTIVITY TIER (Sempre iniciados)
+  # ----------------------------------------------------------------------------
+  license_server:
+    image: rodrigomicrosiga/license-dev:3.7.1
+    container_name: protheus_license
+    networks:
+      - protheus_network
+    ports:
+      - "${LICENSE_SERVER_PORT}:${LICENSE_SERVER_PORT}"
+    cap_add:
+      - SYS_RAWIO
+    devices:
+      - "/dev/mem:/dev/mem"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    restart: always
+
+  postgres_db:
+    image: rodrigomicrosiga/postgres:latest
+    container_name: protheus_postgres
+    profiles:
+      - postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_ROOT_USER:-}
+      - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASSWORD:-}
+      - POSTGRES_DB=${POSTGRES_ROOT_USER:-}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - POSTGRES_INITDB_ARGS=--data-checksums -c shared_buffers=512MB -c synchronous_commit=off
+    ports:
+      - "${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - protheus_network
+    restart: always
+
+  mssql_db:
+    image: mcr.microsoft.com/mssql/server:2025-latest # Atualizado para o motor 2025 homologado
+    container_name: protheus_mssql
+    profiles:
+      - mssql
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:-}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    ports:
+      - "${MSSQL_PORT:-1433}:${MSSQL_PORT:-1433}"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - protheus_network
+    restart: always
+
+  oracle_db:
+    image: container-registry.oracle.com/database/enterprise:21.3.0.0
+    container_name: protheus_oracle
+    profiles:
+      - oracle
+    environment:
+      - ORACLE_PWD=${ORACLE_ROOT_PASSWORD:-}
+      - ORACLE_CHARACTERSET=WE8MSWIN1252
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+    ports:
+      - "${ORACLE_PORT:-1521}:${ORACLE_PORT:-1521}"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+    networks:
+      - protheus_network
+    restart: always
+
+  dbaccess:
+    image: rodrigomicrosiga/dbaccess-dev:24.1.1.3
+    container_name: protheus_dbaccess
+    networks:
+      protheus_network:
+        aliases:
+          - protheus_dbaccess
+    env_file:
+      - .env.protheus
+      - .env.${SGBD:-postgres} # Fallback preventivo caso a extensão do SGBD varie
+    environment:
+      - DB_TYPE=${DB_TYPE}
+      - DB_SERVER=${DB_SERVER}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - DB_SERVICE_NAME=${DB_SERVICE_NAME:-}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - LICENSE_SERVER_HOST=${LICENSE_SERVER}
+      - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
+    ports:
+      - "${DBACCESS_PORT}:${DBACCESS_PORT}"
+    restart: always
+
+  # ----------------------------------------------------------------------------
+  # DELIVERY INTERFACE: HOT-SWAP SMARTCLIENT HTML v10.2.0 (Sidecar de Borda)
+  # ----------------------------------------------------------------------------
+  protheus_webapp:
+    image: rodrigomicrosiga/webapp-dev:10.2.0
+    container_name: protheus_webapp
+    restart: always
+    volumes:
+      - webapp_shared_module:/mnt/webapp_shared
+
+  # ----------------------------------------------------------------------------
+  # APPLICATION TIER: TOTVS APPSERVER CORE MASTER (Sempre iniciado)
+  # ----------------------------------------------------------------------------
+  appserver_core:
+    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    container_name: protheus_core
+    networks:
+      - protheus_network
+    ports:
+      - "${CORE_PORT_MULTI}:${CORE_PORT_MULTI}"
+      - "${APP_MONITOR_PORT}:${APP_MONITOR_PORT}"
+    environment:
+      - ENV_NAME=${ENV_NAME}
+      - DB_NAME=${DB_NAME}
+      - DB_TYPE=${DB_TYPE}
+      - DBACCESS_PORT=${DBACCESS_PORT}
+      - DBACCESS_SERVER=${DBACCESS_SERVER}
+      - LICENSE_SERVER=${LICENSE_SERVER}
+      - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
+      - APP_PORT_MULTI=${CORE_PORT_MULTI}
+      - APP_MONITOR_PORT=${APP_MONITOR_PORT}
+      - CUSTOM_RPO_NAME=${CUSTOM_RPO_NAME:-custom}
+    volumes:
+      - ./protheus/apo:/totvs/protheus/apo
+      - protheus_system:/totvs/protheus/system
+      - protheus_systemload:/totvs/protheus/systemload
+      - protheus_data:/totvs/protheus/data
+      - protheus_log:/totvs/protheus/log
+      - ./protheus/system:/tmp/source_system:ro
+      - ./protheus/systemload:/tmp/source_systemload:ro
+      # Acoplamento transparente do módulo WebApp compartilhado
+      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp:ro
+    cap_add:
+      - SYS_RAWIO
+    devices:
+      - "/dev/mem:/dev/mem"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    depends_on:
+      - dbaccess
+      - protheus_webapp
+    restart: always
+    command: ["core"]
+
+  # ----------------------------------------------------------------------------
+  # APPLICATION TIER: SPECIALIST SERVICES (Perfis dedicados sob demanda)
+  # ----------------------------------------------------------------------------
+  appserver_rest:
+    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    container_name: protheus_rest
+    profiles:
+      - rest
+    networks:
+      - protheus_network
+    ports:
+      - "${REST_PORT_MULTI}:${REST_PORT_MULTI}"
+      - "${REST_HTTP_PORT}:${REST_HTTP_PORT}"
+    environment:
+      - ENV_NAME=${ENV_NAME}
+      - DB_NAME=${DB_NAME}
+      - DB_TYPE=${DB_TYPE}
+      - DBACCESS_PORT=${DBACCESS_PORT}
+      - DBACCESS_SERVER=${DBACCESS_SERVER}
+      - LICENSE_SERVER=${LICENSE_SERVER}
+      - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
+      - APP_PORT_MULTI=${REST_PORT_MULTI}
+      - REST_HTTP_PORT=${REST_HTTP_PORT}
+      - REST_PREP_ENV=${REST_PREP_ENV}
+      - REST_INSTANCES=${REST_INSTANCES}
+      - REST_URI=${REST_URI}
+      - CUSTOM_RPO_NAME=${CUSTOM_RPO_NAME:-custom}
+    volumes:
+      - ./protheus/apo:/totvs/protheus/apo
+      - protheus_system:/totvs/protheus/system
+      - protheus_data:/totvs/protheus/data
+      - protheus_log:/totvs/protheus/log
+      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp:ro
+    cap_add:
+      - SYS_RAWIO
+    devices:
+      - "/dev/mem:/dev/mem"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    restart: always
+    command: ["rest"]
+
+  appserver_telnet:
+    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    container_name: protheus_telnet
+    profiles:
+      - telnet
+    networks:
+      - protheus_network
+    ports:
+      - "${TELNET_PORT_MULTI}:${TELNET_PORT_MULTI}"
+      - "${TELNET_PORT}:${TELNET_PORT}"
+    environment:
+      - ENV_NAME=${ENV_NAME}
+      - DB_NAME=${DB_NAME}
+      - DB_TYPE=${DB_TYPE}
+      - DBACCESS_PORT=${DBACCESS_PORT}
+      - DBACCESS_SERVER=${DBACCESS_SERVER}
+      - LICENSE_SERVER=${LICENSE_SERVER}
+      - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
+      - APP_PORT_MULTI=${TELNET_PORT_MULTI}
+      - TELNET_PORT=${TELNET_PORT}
+      - CUSTOM_RPO_NAME=${CUSTOM_RPO_NAME:-custom}
+    volumes:
+      - ./protheus/apo:/totvs/protheus/apo
+      - protheus_system:/totvs/protheus/system
+      - protheus_data:/totvs/protheus/data
+      - protheus_log:/totvs/protheus/log
+      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp:ro
+    cap_add:
+      - SYS_RAWIO
+    devices:
+      - "/dev/mem:/dev/mem"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    restart: always
+    command: ["telnet"]
+
+  # ----------------------------------------------------------------------------
+  # APPLICATION TIER: AUTOMATED DEPLOY WORKER (MODO JOB CLI EFÊMERO)
+  # ----------------------------------------------------------------------------
+  appserver_worker:
+    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    container_name: protheus_worker
+    profiles:
+      - worker
+    networks:
+      - protheus_network
+    environment:
+      - ENV_NAME=${ENV_NAME}
+      - DB_NAME=${DB_NAME}
+      - DB_TYPE=${DB_TYPE}
+      - DBACCESS_PORT=${DBACCESS_PORT}
+      - DBACCESS_SERVER=${DBACCESS_SERVER}
+      - LICENSE_SERVER=${LICENSE_SERVER}
+      - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
+      - CUSTOM_RPO_NAME=${CUSTOM_RPO_NAME:-custom}
+    volumes:
+      - ./protheus/apo:/totvs/protheus/apo
+      - protheus_system:/totvs/protheus/system
+      - protheus_log:/totvs/protheus/log
+      - ./protheus/patches:/totvs/protheus/patches_queue
+    cap_add:
+      - SYS_RAWIO
+    devices:
+      - "/dev/mem:/dev/mem"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    command: ["worker"]
+
+  # ----------------------------------------------------------------------------
+  # APPLICATION TIER: AUTOMATED DICTIONARY MIGRATOR (UPDDISTR JOB)
+  # ----------------------------------------------------------------------------
+  appserver_upddistr:
+    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    container_name: protheus_upddistr
+    profiles:
+      - upddistr
+    networks:
+      - protheus_network
+    environment:
+      - ENV_NAME=${ENV_NAME}
+      - DB_NAME=${DB_NAME}
+      - DB_TYPE=${DB_TYPE}
+      - DBACCESS_PORT=${DBACCESS_PORT}
+      - DBACCESS_SERVER=${DBACCESS_SERVER}
+      - LICENSE_SERVER=${LICENSE_SERVER}
+      - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
+      - RPO_CUSTOM_NAME=${RPO_CUSTOM_NAME:-custom}
+      - UPD_USER=${UPD_USER:-admin}
+      - UPD_PASSWORD=${UPD_PASSWORD:-senha}
+      - UPD_SIMULACAO=${UPD_SIMULACAO:-false}
+      - UPD_EMPRESAS=${UPD_EMPRESAS:-"99"}
+    volumes:
+      - ./protheus/apo:/totvs/protheus/apo
+      - protheus_system:/totvs/protheus/system
+      - protheus_log:/totvs/protheus/log
+      - ./protheus/systemload:/totvs/protheus/systemload
+    cap_add:
+      - SYS_RAWIO
+    devices:
+      - "/dev/mem:/dev/mem"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    command: ["upddistr"]
+
+  # ----------------------------------------------------------------------------
+  # APPLICATION TIER: GITOPS ADVPL/TLPP CODE COMPILER LAYER
+  # ----------------------------------------------------------------------------
+  appserver_compiler:
+    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    container_name: protheus_compiler
+    profiles:
+      - compile
+    networks:
+      - protheus_network
+    environment:
+      - ENV_NAME=${ENV_NAME}
+      - DB_NAME=${DB_NAME}
+      - DB_TYPE=${DB_TYPE}
+      - DBACCESS_PORT=${DBACCESS_PORT}
+      - DBACCESS_SERVER=${DBACCESS_SERVER}
+      - LICENSE_SERVER=${LICENSE_SERVER}
+      - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
+      - RPO_CUSTOM_NAME=${RPO_CUSTOM_NAME:-custom}
+    volumes:
+      - ./protheus/apo:/totvs/protheus/apo
+      - protheus_system:/totvs/protheus/system
+      - protheus_log:/totvs/protheus/log
+      - ./protheus/patches:/totvs/protheus/patches_queue
+      - ./protheus/includes/advpl:/totvs/protheus/includes/advpl
+      - ./protheus/includes/tlpp:/totvs/protheus/includes/tlpp
+      - ./protheus/includes/custom:/totvs/protheus/includes/custom
+    cap_add:
+      - SYS_RAWIO
+    devices:
+      - "/dev/mem:/dev/mem"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    command: ["compile"]
+
+# ----------------------------------------------------------------------------
+# PERSISTENT DATA TIERS (Inclusão do volume compartilhado da interface)
+# ----------------------------------------------------------------------------
+volumes:
+  pg_data:
+  mssql_data:
+  oracle_data:
+  protheus_system:
+  protheus_systemload:
+  protheus_data:
+  protheus_log:
+  webapp_shared_module: # Novo volume nomeado mestre para gerenciar o Hot-Swap
