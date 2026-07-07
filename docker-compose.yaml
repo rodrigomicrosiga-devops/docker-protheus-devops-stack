@@ -26,7 +26,7 @@ services:
     restart: always
 
   postgres_db:
-    image: postgres:16
+    build: ./databases/postgres
     container_name: protheus_postgres
     profiles:
       - postgres
@@ -36,13 +36,13 @@ services:
     environment:
       - POSTGRES_USER=${POSTGRES_ROOT_USER}
       - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASSWORD}
-      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_DB=${POSTGRES_ROOT_USER}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
       - POSTGRES_INITDB_ARGS=--data-checksums -c shared_buffers=512MB -c synchronous_commit=off
     ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+      - "${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}"
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
@@ -50,7 +50,7 @@ services:
     restart: always
 
   mssql_db:
-    image: mcr.microsoft.com/mssql/server:2025-latest
+    build: ./databases/mssql  # 🔥 Alterado para build local para automatizar o provisionamento
     container_name: protheus_mssql
     profiles:
       - mssql
@@ -64,7 +64,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
     ports:
-      - "${MSSQL_PORT}:${MSSQL_PORT}"
+      - "${MSSQL_PORT:-1433}:${MSSQL_PORT:-1433}"
     volumes:
       - mssql_data:/var/opt/mssql
     networks:
@@ -85,7 +85,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
     ports:
-      - "${ORACLE_PORT}:${ORACLE_PORT}"
+      - "${ORACLE_PORT:-1521}:${ORACLE_PORT:-1521}"
     volumes:
       - oracle_data:/opt/oracle/oradata
     networks:
@@ -101,6 +101,7 @@ services:
           - protheus_dbaccess
     env_file:
       - .env.protheus
+      - .env.postgres
     environment:
       - DB_TYPE=${DB_TYPE}
       - DB_SERVER=${DB_SERVER}
@@ -138,6 +139,7 @@ services:
       - "${APP_MONITOR_PORT}:${APP_MONITOR_PORT}"
     env_file:
       - .env.protheus
+      - .env.postgres
     environment:
       - ENV_NAME=${ENV_NAME}
       - DB_NAME=${DB_NAME}
@@ -157,7 +159,7 @@ services:
       - protheus_log:/totvs/protheus/log
       - ./protheus/system:/tmp/source_system:ro
       - ./protheus/systemload:/tmp/source_systemload:ro
-      - webapp_shared_module:/totvs/protheus/bin/appserver/
+      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp
     cap_add:
       - SYS_RAWIO
     devices:
@@ -187,6 +189,7 @@ services:
       - "${REST_HTTP_PORT}:${REST_HTTP_PORT}"
     env_file:
       - .env.protheus
+      - .env.postgres
     environment:
       - ENV_NAME=${ENV_NAME}
       - DB_NAME=${DB_NAME}
@@ -206,7 +209,7 @@ services:
       - protheus_system:/totvs/protheus/system
       - protheus_data:/totvs/protheus/data
       - protheus_log:/totvs/protheus/log
-      - webapp_shared_module:/totvs/protheus/bin/appserver/
+      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp
     cap_add:
       - SYS_RAWIO
     devices:
@@ -230,6 +233,7 @@ services:
       - "${TELNET_PORT}:${TELNET_PORT}"
     env_file:
       - .env.protheus
+      - .env.postgres
     environment:
       - ENV_NAME=${ENV_NAME}
       - DB_NAME=${DB_NAME}
@@ -246,7 +250,7 @@ services:
       - protheus_system:/totvs/protheus/system
       - protheus_data:/totvs/protheus/data
       - protheus_log:/totvs/protheus/log
-      - webapp_shared_module:/totvs/protheus/bin/appserver/
+      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp
     cap_add:
       - SYS_RAWIO
     devices:
@@ -270,6 +274,7 @@ services:
       - protheus_network
     env_file:
       - .env.protheus
+      - .env.postgres
     environment:
       - ENV_NAME=${ENV_NAME}
       - DB_NAME=${DB_NAME}
@@ -306,6 +311,7 @@ services:
       - protheus_network
     env_file:
       - .env.protheus
+      - .env.postgres
     environment:
       - ENV_NAME=${ENV_NAME}
       - DB_NAME=${DB_NAME}
@@ -346,6 +352,7 @@ services:
       - protheus_network
     env_file:
       - .env.protheus
+      - .env.postgres
     environment:
       - ENV_NAME=${ENV_NAME}
       - DB_NAME=${DB_NAME}
