@@ -1,5 +1,8 @@
 # --- ENVIRONMENT VARIABLES ---
 .env.protheus
+.env.mssql
+.env.oracle
+.env.postgres
 
 # --- TOTVS BINARIES & REPOSITORIES (TRAVA DE GOVERNANÇA) ---
 *.rpo

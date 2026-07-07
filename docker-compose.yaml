@@ -32,16 +32,17 @@ services:
       - postgres
     env_file:
       - .env.protheus
+      - .env.postgres
     environment:
-      - POSTGRES_USER=${POSTGRES_ROOT_USER:-}
-      - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASSWORD:-}
-      - POSTGRES_DB=${POSTGRES_ROOT_USER:-}
+      - POSTGRES_USER=${POSTGRES_ROOT_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
       - POSTGRES_INITDB_ARGS=--data-checksums -c shared_buffers=512MB -c synchronous_commit=off
     ports:
-      - "${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}"
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
@@ -55,14 +56,15 @@ services:
       - mssql
     env_file:
       - .env.protheus
+      - .env.mssql
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD:-}
+      - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
     ports:
-      - "${MSSQL_PORT:-1433}:${MSSQL_PORT:-1433}"
+      - "${MSSQL_PORT}:${MSSQL_PORT}"
     volumes:
       - mssql_data:/var/opt/mssql
     networks:
@@ -76,13 +78,14 @@ services:
       - oracle
     env_file:
       - .env.protheus
+      - .env.oracle
     environment:
-      - ORACLE_PWD=${ORACLE_ROOT_PASSWORD:-}
+      - ORACLE_PWD=${ORACLE_ROOT_PASSWORD}
       - ORACLE_CHARACTERSET=WE8MSWIN1252
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
     ports:
-      - "${ORACLE_PORT:-1521}:${ORACLE_PORT:-1521}"
+      - "${ORACLE_PORT}:${ORACLE_PORT}"
     volumes:
       - oracle_data:/opt/oracle/oradata
     networks:
@@ -154,7 +157,6 @@ services:
       - protheus_log:/totvs/protheus/log
       - ./protheus/system:/tmp/source_system:ro
       - ./protheus/systemload:/tmp/source_systemload:ro
-      # Mapeamento do volume acoplado diretamente na raiz do diretório binário do AppServer
       - webapp_shared_module:/totvs/protheus/bin/appserver/
     cap_add:
       - SYS_RAWIO
