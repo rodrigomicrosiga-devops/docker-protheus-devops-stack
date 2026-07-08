@@ -82,7 +82,7 @@ services:
     restart: always
 
   oracle_db:
-    image: container-registry.oracle.com/database/free:latest
+    build: ./databases/oracle
     container_name: protheus_oracle
     profiles:
       - oracle
@@ -96,8 +96,22 @@ services:
       - DB_PASS=${DB_PASS}
     ports:
       - "${ORACLE_PORT:-1521}:${ORACLE_PORT:-1521}"
-    volumes:
-      - oracle_data:/opt/oracle/oradata
+    # 🔥 MEMÓRIA COMPARTILHADA DO KERNEL: Expandido para 4GB para suportar a carga de dicionário do Protheus
+    shm_size: '4gb'
+    # 🔥 PARÂMETROS DE LINUX SÊNIOR: Impede o estouro de memória por amostragem do container
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+      nproc:
+        soft: 16384
+        hard: 16384
+      memlock:
+        soft: -1
+        hard: -1
+      stack:
+        soft: 10485760
+        hard: 10485760
     networks:
       - protheus_network
     restart: always
