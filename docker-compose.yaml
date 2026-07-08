@@ -50,7 +50,7 @@ services:
     restart: always
 
   mssql_db:
-    build: ./databases/mssql  # 🔥 Alterado para build local para automatizar o provisionamento
+    build: ./databases/mssql
     container_name: protheus_mssql
     profiles:
       - mssql
@@ -63,10 +63,20 @@ services:
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
+      # 🔥 LIMITADOR DE MEMÓRIA: Evita paginação agressiva no motor (Mínimo recomendado para rodar bem: 2048)
+      - MSSQL_MEMORY_LIMIT_MB=${MSSQL_MEMORY_LIMIT_MB:-3072}
     ports:
       - "${MSSQL_PORT:-1433}:${MSSQL_PORT:-1433}"
     volumes:
       - mssql_data:/var/opt/mssql
+    # 🔥 BLINDAGEM DE MEMÓRIA: Impede o swap de páginas do SQL Server para o disco
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
     networks:
       - protheus_network
     restart: always
