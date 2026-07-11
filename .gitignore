@@ -3,6 +3,7 @@
 .env.mssql
 .env.oracle
 .env.postgres
+.env.smartview
 
 # --- TOTVS BINARIES & REPOSITORIES (TRAVA DE GOVERNANÇA) ---
 *.rpo

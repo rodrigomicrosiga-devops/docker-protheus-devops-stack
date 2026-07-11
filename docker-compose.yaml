@@ -32,7 +32,7 @@ services:
       - postgres
     env_file:
       - .env.protheus
-      - .env.postgres
+      - .env.postgres  # 🔒 Dica de Ouro: Apenas o ambiente do ERP e do próprio banco. Sem .env.smartview aqui.
     environment:
       - POSTGRES_USER=${POSTGRES_ROOT_USER}
       - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASSWORD}
@@ -56,20 +56,18 @@ services:
       - mssql
     env_file:
       - .env.protheus
-      - .env.mssql
+      - .env.mssql     # 🔒 Dica de Ouro: Sem .env.smartview aqui.
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
-      # 🔥 LIMITADOR DE MEMÓRIA: Evita paginação agressiva no motor (Mínimo recomendado para rodar bem: 2048)
       - MSSQL_MEMORY_LIMIT_MB=${MSSQL_MEMORY_LIMIT_MB:-3072}
     ports:
       - "${MSSQL_PORT:-1433}:${MSSQL_PORT:-1433}"
     volumes:
       - mssql_data:/var/opt/mssql
-    # 🔥 BLINDAGEM DE MEMÓRIA: Impede o swap de páginas do SQL Server para o disco
     ulimits:
       memlock:
         soft: -1
@@ -88,7 +86,7 @@ services:
       - oracle
     env_file:
       - .env.protheus
-      - .env.oracle
+      - .env.oracle    # 🔒 Dica de Ouro: Sem .env.smartview aqui.
     environment:
       - ORACLE_PWD=${ORACLE_ROOT_PASSWORD}
       - ORACLE_CHARACTERSET=WE8MSWIN1252
@@ -96,9 +94,7 @@ services:
       - DB_PASS=${DB_PASS}
     ports:
       - "${ORACLE_PORT:-1521}:${ORACLE_PORT:-1521}"
-    # 🔥 MEMÓRIA COMPARTILHADA DO KERNEL: Expandido para 4GB para suportar a carga de dicionário do Protheus
     shm_size: '4gb'
-    # 🔥 PARÂMETROS DE LINUX SÊNIOR: Impede o estouro de memória por amostragem do container
     ulimits:
       nofile:
         soft: 65536
@@ -151,7 +147,7 @@ services:
       - webapp_shared_module:/mnt/webapp_shared
 
   # ----------------------------------------------------------------------------
-  # APPLICATION TIER: TOTVS APPSERVER CORE MASTER (Sempre iniciado)
+  # APPLICATION TIER: TOTVS APPSERVER CORE MASTER (Sempre iniciado com a stack)
   # ----------------------------------------------------------------------------
   appserver_core:
     image: rodrigomicrosiga/appserver-dev:24.3.1.5
@@ -199,7 +195,7 @@ services:
     command: ["core"]
 
   # ----------------------------------------------------------------------------
-  # APPLICATION TIER: SPECIALIST SERVICES (Perfis dedicados sob demanda)
+  # APPLICATION TIER: SPECIALIST SERVICES (Perfis dedicados sob demanda estrita)
   # ----------------------------------------------------------------------------
   appserver_rest:
     image: rodrigomicrosiga/appserver-dev:24.3.1.5
@@ -285,6 +281,53 @@ services:
         hard: 65536
     restart: always
     command: ["telnet"]
+
+  # ----------------------------------------------------------------------------
+  # APPLICATION TIER: TOTVS SMARTVIEW - PROVISIONAMENTO DINÂMICO DE BANCO
+  # ----------------------------------------------------------------------------
+  smartview_db_init:
+    image: postgres:16
+    container_name: protheus_smartview_db_init
+    profiles:
+      - smartview
+    networks:
+      - protheus_network
+    env_file:
+      - .env.protheus
+      - .env.postgres
+      - .env.smartview
+    volumes:
+      - ./databases/postgres:/opt/postgres
+    environment:
+      - PGPASSWORD=${POSTGRES_ROOT_PASSWORD}
+      - PGUSER=${POSTGRES_ROOT_USER}
+      - PGHOST=protheus_postgres
+      - PGDATABASE=${POSTGRES_ROOT_USER}
+      - SV_USER=${SV_USER}
+      - SV_PASS=${SV_PASS}
+      - SV_DBNAME=${SV_DBNAME}
+    command: >
+      sh -c "psql -c \"SET custom.sv_user = '${SV_USER}'; SET custom.sv_pass = '${SV_PASS}'; SET custom.sv_dbname = '${SV_DBNAME}';\" -f /opt/postgres/init-smartview.sql"
+
+  # ----------------------------------------------------------------------------
+  # APPLICATION TIER: TOTVS SMARTVIEW (Engine de Relatórios e Visões)
+  # ----------------------------------------------------------------------------
+  smartview:
+    image: rodrigomicrosiga/smartview-dev:3.9.0
+    container_name: protheus_smartview
+    profiles:
+      - smartview
+    networks:
+      - protheus_network
+    ports:
+      - "7019:7019"
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    restart: always
+    depends_on:
+      smartview_db_init:
+        condition: service_started
 
   # ----------------------------------------------------------------------------
   # APPLICATION TIER: AUTOMATED DEPLOY WORKER (MODO JOB CLI EFÊMERO)

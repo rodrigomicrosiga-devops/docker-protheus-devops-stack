@@ -13,13 +13,13 @@ done
 
 echo "🚀 [SQL Server Init] Motor pronto! Executando script de provisionamento da base TOTVS..."
 
-# Injeta dinamicamente as variáveis do .env para dentro do script SQL
+# Injeta dinamicamente apenas as variáveis do ERP Protheus
 /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$MSSQL_SA_PASSWORD" \
     -i init-protheus.sql \
     -v SQL_DB="$DB_NAME" SQL_USER="$DB_USER" SQL_PASS="$DB_PASS" \
     -C -No
 
-echo "✅ [SQL Server Init] Banco de dados e usuário criados com sucesso!"
+echo "✅ [SQL Server Init] Banco de dados e usuário do Protheus criados com sucesso!"
 
 # Mantém o processo do sqlservr em primeiro plano
 wait

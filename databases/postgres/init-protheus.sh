@@ -25,4 +25,4 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     GRANT ALL PRIVILEGES ON DATABASE "$DB_NAME" TO "$DB_USER";
 EOSQL
 
-echo "✅ [Postgres Init] Base de dados e usuário criados com sucesso!"
+echo "✅ [Postgres Init] Base de dados do Protheus criada com sucesso!"
