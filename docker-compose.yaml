@@ -321,6 +321,7 @@ services:
       - protheus_network
     ports:
       - "7019:7019"
+      - "7017:7017"  # 🔓 Nova porta adicionada para comunicação interna
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -333,7 +334,7 @@ services:
   # APPLICATION TIER: AUTOMATED DEPLOY WORKER (MODO JOB CLI EFÊMERO)
   # ----------------------------------------------------------------------------
   appserver_worker:
-    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.5  # 🏷️ Nova nomenclatura padronizada
     container_name: protheus_worker
     profiles:
       - worker
@@ -341,7 +342,6 @@ services:
       - protheus_network
     env_file:
       - .env.protheus
-      - .env.postgres
     environment:
       - ENV_NAME=${ENV_NAME}
       - DB_NAME=${DB_NAME}
@@ -354,6 +354,7 @@ services:
     volumes:
       - ./protheus/apo:/totvs/protheus/apo
       - protheus_system:/totvs/protheus/system
+      - protheus_systemload:/totvs/protheus/systemload
       - protheus_log:/totvs/protheus/log
       - ./protheus/patches:/totvs/protheus/patches_queue
     cap_add:
@@ -408,10 +409,10 @@ services:
     command: ["upddistr"]
 
   # ----------------------------------------------------------------------------
-  # APPLICATION TIER: GITOPS ADVPL/TLPP CODE COMPILER LAYER
+  # APPLICATION TIER: GITOPS ADVPL/TLPP CODE COMPILER LAYER (COMPILAÇÃO AUTOMÁTICA)
   # ----------------------------------------------------------------------------
   appserver_compiler:
-    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.5  # 🚀 Reaproveita a mesma imagem especialista
     container_name: protheus_compiler
     profiles:
       - compile
@@ -419,7 +420,6 @@ services:
       - protheus_network
     env_file:
       - .env.protheus
-      - .env.postgres
     environment:
       - ENV_NAME=${ENV_NAME}
       - DB_NAME=${DB_NAME}
@@ -432,6 +432,7 @@ services:
     volumes:
       - ./protheus/apo:/totvs/protheus/apo
       - protheus_system:/totvs/protheus/system
+      - protheus_systemload:/totvs/protheus/systemload
       - protheus_log:/totvs/protheus/log
       - ./protheus/patches:/totvs/protheus/patches_queue
       - ./protheus/includes/advpl:/totvs/protheus/includes/advpl

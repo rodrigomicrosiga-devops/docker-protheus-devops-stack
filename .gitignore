@@ -8,6 +8,7 @@
 # --- TOTVS BINARIES & REPOSITORIES (TRAVA DE GOVERNANÇA) ---
 *.rpo
 *.zip
+*.ptm
 
 # --- LOGS & LOCAL RUNTIME ARTIFACTS ---
 *.log
