@@ -286,7 +286,7 @@ services:
   # APPLICATION TIER: TOTVS SMARTVIEW - PROVISIONAMENTO DINÂMICO DE BANCO
   # ----------------------------------------------------------------------------
   smartview_db_init:
-    image: fwtwt/mssql-tools-postgres-client:latest  # Utilizaremos essa imagem de mercado que traz sqlcmd e psql nativos. Caso formos rodar Oracle futuramente, podemos empacotar o sqlplus nela.
+    image: rodrigomicrosiga/docker-smartview-infra-tools-dev:1.0.0
     container_name: protheus_smartview_db_init
     profiles:
       - smartview
@@ -298,7 +298,7 @@ services:
       - .env.postgres
       - .env.smartview
     volumes:
-      - ./databases:/opt/smartview_init:ro  # Monta todo o diretório de bancos como somente leitura para herdar os SQLs específicos
+      - ./databases:/opt/smartview_init:ro  # Mapeia os scripts SQL e o shell para dentro do utilitário
     environment:
       - SGBD=${SGBD}
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
@@ -308,8 +308,7 @@ services:
       - SV_USER=${SV_USER}
       - SV_PASS=${SV_PASS}
       - SV_DBNAME=${SV_DBNAME}
-    entrypoint: ["/bin/sh", "/opt/smartview_init/init-smartview.sh"]
-
+    entrypoint: ["/bin/sh", "/opt/smartview_init/smartview/init-smartview.sh"]
   # ----------------------------------------------------------------------------
   # APPLICATION TIER: TOTVS SMARTVIEW (Engine de Relatórios e Visões)
   # ----------------------------------------------------------------------------
