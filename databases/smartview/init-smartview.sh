@@ -2,16 +2,19 @@
 # ==============================================================================
 # TOTVS SmartView - Multi-SGBD Dynamic Provisioner (Postgres, MSSQL & Oracle)
 # Author: Rodrigo dos Santos Brandão
+# Version: 2.3.0 (POSIX Compliant)
 # ==============================================================================
 set -e
 
+# 🔑 Conversão POSIX universal de minúsculo para maiúsculo usando 'tr'
+SGBD_UPPER=$(echo "$SGBD" | tr '[:lower:]' '[:upper:]')
+
 echo "🚀 [SmartView Init] Iniciando provisionamento dinâmico do banco..."
-echo "📊 SGBD Selecionado: [${SGBD^^}]"
+echo "📊 SGBD Selecionado: [$SGBD_UPPER]"
 
 case "$SGBD" in
     "mssql")
         echo "⏳ [SmartView Init] Aguardando o SQL Server (protheus_mssql:1433) ficar operacional..."
-        # Utiliza o parâmetro -C e -No para paridade com o entrypoint padrão do SQL Server
         until sqlcmd -S protheus_mssql -U sa -P "$MSSQL_SA_PASSWORD" -Q "SELECT 1" -C -No > /dev/null 2>&1; do
             sleep 2
         done
@@ -32,7 +35,6 @@ case "$SGBD" in
         done
 
         echo "⚙️ [SmartView Init] Executando script de provisionamento no Postgres..."
-        # Passa as variáveis para o script SQL usando variáveis de sessão customizadas
         psql -h protheus_postgres -U "${POSTGRES_ROOT_USER}" -d "${POSTGRES_ROOT_USER}" \
              -c "SET custom.sv_user = '${SV_USER}'; SET custom.sv_pass = '${SV_PASS}'; SET custom.sv_dbname = '${SV_DBNAME}';" \
              -f /opt/smartview_init/postgres/init-smartview.sql
@@ -41,7 +43,6 @@ case "$SGBD" in
 
     "oracle")
         echo "⏳ [SmartView Init] Aguardando o Oracle (protheus_oracle:1521) ficar operacional..."
-        # Testa a conectividade no Oracle antes de rodar os scripts
         until echo "EXIT" | sqlplus -S sys/"$ORACLE_ROOT_PASSWORD"@protheus_oracle:1521/ORCLPDB1 as sysdba > /dev/null 2>&1; do
             sleep 5
         done

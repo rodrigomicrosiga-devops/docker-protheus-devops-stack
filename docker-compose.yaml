@@ -286,7 +286,7 @@ services:
   # APPLICATION TIER: TOTVS SMARTVIEW - PROVISIONAMENTO DINÂMICO DE BANCO
   # ----------------------------------------------------------------------------
   smartview_db_init:
-    image: rodrigomicrosiga/docker-smartview-infra-tools-dev:1.0.0
+    image: rodrigomicrosiga/smartview-infra-tools-dev:1.0
     container_name: protheus_smartview_db_init
     profiles:
       - smartview
