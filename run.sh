@@ -163,7 +163,8 @@ if [ "$SERVICE" = "worker" ] || [ "$SERVICE" = "compile" ] || [ "$SERVICE" = "up
 else
     if [ "$SERVICE" = "smartview" ]; then
         echo "🚀 [DevOps] Acoplando a plataforma de relatórios [SMARTVIEW]..."
-        docker compose --env-file .env.protheus $ENV_SMARTVIEW --env-file "$ENV_SPEC" up --no-recreate -d protheus_smartview 2>/dev/null || docker compose --env-file .env.protheus $ENV_SMARTVIEW --env-file "$ENV_SPEC" up --no-recreate -d appserver_smartview
+        # 🔑 Correção: Apontando para o serviço real "smartview" declarado no compose
+        docker compose --env-file .env.protheus $ENV_SMARTVIEW --env-file "$ENV_SPEC" up --no-recreate -d smartview
     elif [ -n "$SERVICE" ] && [ "$SERVICE" != "core" ]; then
         echo "🚀 [DevOps] Inicializando serviço especialista contínuo: [${SERVICE^^}]..."
         docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up --no-recreate -d appserver_$SERVICE
