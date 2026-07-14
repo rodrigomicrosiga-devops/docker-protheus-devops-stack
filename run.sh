@@ -2,7 +2,7 @@
 # ==============================================================================
 # TOTVS Protheus DevOps Stack - Unified Environment Controller (CLI)
 # Author: Rodrigo dos Santos Brandão
-# Version: 2.1.0 (MSSQL / Postgres / Oracle Supported)
+# Version: 2.2.0 (MSSQL / Postgres / Oracle Supported)
 # ==============================================================================
 set -e
 
@@ -48,6 +48,15 @@ ENV_SPEC=".env.$SGBD"
 if [ ! -f "$ENV_SPEC" ]; then
     echo "❌ Erro crítico: O arquivo de ambiente especialista $ENV_SPEC não foi localizado!"
     exit 1
+fi
+
+# 🔑 MAPEAMENTO DINÂMICO DOS SERVIÇOS DE BANCO CONFORME COMPOSE
+if [ "$SGBD" = "mssql" ]; then
+    DB_SERVICE_NAME="mssql_db"
+elif [ "$SGBD" = "postgres" ]; then
+    DB_SERVICE_NAME="postgres_db"
+elif [ "$SGBD" = "oracle" ]; then
+    DB_SERVICE_NAME="oracle_db"
 fi
 
 # Validação e injeção do arquivo específico do SmartView se ele for acionado
@@ -160,12 +169,13 @@ else
         docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up --no-recreate -d appserver_$SERVICE
     else
         echo "🚀 [DevOps] Inicializando APENAS a infraestrutura base Protheus com banco [${SGBD^^}]..."
+        # 🔑 CORREÇÃO DO MAPEAMENTO CONFORME O COMPOSE REAL
         docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up -d \
-            ${SGBD} \
-            licenseserver \
+            ${DB_SERVICE_NAME} \
+            license_server \
             dbaccess \
             appserver_core \
-            webapp-dev
+            protheus_webapp
     fi
 fi
 
