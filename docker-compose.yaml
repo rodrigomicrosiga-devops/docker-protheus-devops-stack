@@ -179,8 +179,8 @@ services:
       - protheus_log:/totvs/protheus/log
       - ./protheus/system:/tmp/source_system:ro
       - ./protheus/systemload:/tmp/source_systemload:ro
-      # 🚀 MAPEAMENTO CIRÚRGICO: Injeta apenas o arquivo webapp.so na raiz do AppServer
-      - webapp_shared_module:/totvs/protheus/bin/appserver/
+      # 🚀 MONTAGEM NEUTRA: Sem subPath, sem risco de criar pastas na raiz do AppServer
+      - webapp_shared_module:/tmp/webapp_shared:ro
     cap_add:
       - SYS_RAWIO
     devices:
@@ -190,8 +190,10 @@ services:
         soft: 65536
         hard: 65536
     depends_on:
-      - dbaccess
-      - protheus_webapp
+      dbaccess:
+        condition: service_started
+      protheus_webapp:
+        condition: service_started # Garante que o sidecar de entrega rode o entrypoint antes
     restart: always
     command: ["core"]
 
@@ -230,8 +232,8 @@ services:
       - protheus_system:/totvs/protheus/system
       - protheus_data:/totvs/protheus/data
       - protheus_log:/totvs/protheus/log
-      # 🚀 MAPEAMENTO CIRÚRGICO: Injeta apenas o arquivo webapp.so na raiz do AppServer
-      - webapp_shared_module:/totvs/protheus/bin/appserver/
+      # 🚀 MONTAGEM NEUTRA: Sem subPath, sem risco de criar pastas na raiz do AppServer
+      - webapp_shared_module:/tmp/webapp_shared:ro
     cap_add:
       - SYS_RAWIO
     devices:
@@ -240,6 +242,9 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+    depends_on:
+      protheus_webapp:
+        condition: service_started
     restart: always
     command: ["rest"]
 
@@ -272,8 +277,8 @@ services:
       - protheus_system:/totvs/protheus/system
       - protheus_data:/totvs/protheus/data
       - protheus_log:/totvs/protheus/log
-      # 🚀 MAPEAMENTO CIRÚRGICO: Injeta apenas o arquivo webapp.so na raiz do AppServer
-      - webapp_shared_module:/totvs/protheus/bin/appserver/
+      # 🚀 MONTAGEM NEUTRA: Sem subPath, sem risco de criar pastas na raiz do AppServer
+      - webapp_shared_module:/tmp/webapp_shared:ro
     cap_add:
       - SYS_RAWIO
     devices:
@@ -282,6 +287,9 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+    depends_on:
+      protheus_webapp:
+        condition: service_started
     restart: always
     command: ["telnet"]
 
@@ -312,6 +320,7 @@ services:
       - SV_PASS=${SV_PASS}
       - SV_DBNAME=${SV_DBNAME}
     entrypoint: ["/bin/sh", "/opt/smartview_init/smartview/init-smartview.sh"]
+
   # ----------------------------------------------------------------------------
   # APPLICATION TIER: TOTVS SMARTVIEW (Engine de Relatórios e Visões)
   # ----------------------------------------------------------------------------
@@ -462,4 +471,4 @@ volumes:
   protheus_systemload:
   protheus_data:
   protheus_log:
-  webapp_shared_module:
+  webapp_shared_module: {}

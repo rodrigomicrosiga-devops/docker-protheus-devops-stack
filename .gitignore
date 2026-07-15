@@ -9,6 +9,8 @@
 *.rpo
 *.zip
 *.ptm
+*.ZIP
+*.RPO
 
 # --- LOGS & LOCAL RUNTIME ARTIFACTS ---
 *.log
