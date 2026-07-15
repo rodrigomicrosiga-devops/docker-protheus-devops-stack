@@ -179,7 +179,8 @@ services:
       - protheus_log:/totvs/protheus/log
       - ./protheus/system:/tmp/source_system:ro
       - ./protheus/systemload:/tmp/source_systemload:ro
-      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp
+      # 🚀 MAPEAMENTO CIRÚRGICO: Injeta apenas o arquivo webapp.so na raiz do AppServer
+      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp.so:subPath=webapp.so
     cap_add:
       - SYS_RAWIO
     devices:
@@ -229,7 +230,8 @@ services:
       - protheus_system:/totvs/protheus/system
       - protheus_data:/totvs/protheus/data
       - protheus_log:/totvs/protheus/log
-      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp
+      # 🚀 MAPEAMENTO CIRÚRGICO: Injeta apenas o arquivo webapp.so na raiz do AppServer
+      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp.so:subPath=webapp.so
     cap_add:
       - SYS_RAWIO
     devices:
@@ -270,7 +272,8 @@ services:
       - protheus_system:/totvs/protheus/system
       - protheus_data:/totvs/protheus/data
       - protheus_log:/totvs/protheus/log
-      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp
+      # 🚀 MAPEAMENTO CIRÚRGICO: Injeta apenas o arquivo webapp.so na raiz do AppServer
+      - webapp_shared_module:/totvs/protheus/bin/appserver/webapp.so:subPath=webapp.so
     cap_add:
       - SYS_RAWIO
     devices:
