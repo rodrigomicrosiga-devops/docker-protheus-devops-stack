@@ -32,7 +32,7 @@ services:
       - postgres
     env_file:
       - .env.protheus
-      - .env.postgres  # 🔒 Dica de Ouro: Apenas o ambiente do ERP e do próprio banco. Sem .env.smartview aqui.
+      - .env.postgres
     environment:
       - POSTGRES_USER=${POSTGRES_ROOT_USER}
       - POSTGRES_PASSWORD=${POSTGRES_ROOT_PASSWORD}
@@ -56,7 +56,7 @@ services:
       - mssql
     env_file:
       - .env.protheus
-      - .env.mssql     # 🔒 Dica de Ouro: Sem .env.smartview aqui.
+      - .env.mssql
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
@@ -86,7 +86,7 @@ services:
       - oracle
     env_file:
       - .env.protheus
-      - .env.oracle    # 🔒 Dica de Ouro: Sem .env.smartview aqui.
+      - .env.oracle
     environment:
       - ORACLE_PWD=${ORACLE_ROOT_PASSWORD}
       - ORACLE_CHARACTERSET=WE8MSWIN1252
@@ -137,14 +137,21 @@ services:
     restart: always
 
   # ----------------------------------------------------------------------------
-  # DELIVERY INTERFACE: HOT-SWAP SMARTCLIENT HTML v10.2.0 (Sidecar de Borda)
+  # DELIVERY INTERFACES: HOT-SWAP SIDECARS (Provisionamento Dinâmico de Ativos)
   # ----------------------------------------------------------------------------
   protheus_webapp:
-    image: rodrigomicrosiga/webapp-dev:10.2.0
+    image: rodrigomicrosiga/webapp-dev:10.2.1
     container_name: protheus_webapp
     restart: always
     volumes:
       - webapp_shared_module:/mnt/webapp_shared
+
+  protheus_printer:
+    image: rodrigomicrosiga/printer-dev:3.0.5
+    container_name: protheus_printer
+    restart: always
+    volumes:
+      - protheus_printer_volume:/mnt/printer_shared
 
   # ----------------------------------------------------------------------------
   # APPLICATION TIER: TOTVS APPSERVER CORE MASTER (Sempre iniciado com a stack)
@@ -179,8 +186,10 @@ services:
       - protheus_log:/totvs/protheus/log
       - ./protheus/system:/tmp/source_system:ro
       - ./protheus/systemload:/tmp/source_systemload:ro
-      # 🚀 MONTAGEM NEUTRA: Sem subPath, sem risco de criar pastas na raiz do AppServer
+      # 🚀 MONTAGENS NEUTRAS: Sem risco de sobrescrever ou criar pastas fantasmas na raiz
       - webapp_shared_module:/tmp/webapp_shared:ro
+      # 🚀 MONTAGEM NEUTRA: Copia de forma isolada sem mascarar a pasta binaria
+      - protheus_printer_volume:/tmp/printer_shared:ro
     cap_add:
       - SYS_RAWIO
     devices:
@@ -193,7 +202,9 @@ services:
       dbaccess:
         condition: service_started
       protheus_webapp:
-        condition: service_started # Garante que o sidecar de entrega rode o entrypoint antes
+        condition: service_started
+      protheus_printer:
+        condition: service_started
     restart: always
     command: ["core"]
 
@@ -232,8 +243,9 @@ services:
       - protheus_system:/totvs/protheus/system
       - protheus_data:/totvs/protheus/data
       - protheus_log:/totvs/protheus/log
-      # 🚀 MONTAGEM NEUTRA: Sem subPath, sem risco de criar pastas na raiz do AppServer
       - webapp_shared_module:/tmp/webapp_shared:ro
+      # 🚀 MONTAGEM NEUTRA: Copia de forma isolada sem mascarar a pasta binaria
+      - protheus_printer_volume:/tmp/printer_shared:ro
     cap_add:
       - SYS_RAWIO
     devices:
@@ -244,6 +256,8 @@ services:
         hard: 65536
     depends_on:
       protheus_webapp:
+        condition: service_started
+      protheus_printer:
         condition: service_started
     restart: always
     command: ["rest"]
@@ -277,8 +291,9 @@ services:
       - protheus_system:/totvs/protheus/system
       - protheus_data:/totvs/protheus/data
       - protheus_log:/totvs/protheus/log
-      # 🚀 MONTAGEM NEUTRA: Sem subPath, sem risco de criar pastas na raiz do AppServer
       - webapp_shared_module:/tmp/webapp_shared:ro
+      # 🚀 MONTAGEM NEUTRA: Copia de forma isolada sem mascarar a pasta binaria
+      - protheus_printer_volume:/tmp/printer_shared:ro
     cap_add:
       - SYS_RAWIO
     devices:
@@ -289,6 +304,8 @@ services:
         hard: 65536
     depends_on:
       protheus_webapp:
+        condition: service_started
+      protheus_printer:
         condition: service_started
     restart: always
     command: ["telnet"]
@@ -309,7 +326,7 @@ services:
       - .env.postgres
       - .env.smartview
     volumes:
-      - ./databases:/opt/smartview_init:ro  # Mapeia os scripts SQL e o shell para dentro do utilitário
+      - ./databases:/opt/smartview_init:ro
     environment:
       - SGBD=${SGBD}
       - MSSQL_SA_PASSWORD=${MSSQL_SA_PASSWORD}
@@ -333,7 +350,7 @@ services:
       - protheus_network
     ports:
       - "7019:7019"
-      - "7017:7017"  # 🔓 Nova porta adicionada para comunicação interna
+      - "7017:7017"
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
@@ -346,7 +363,7 @@ services:
   # APPLICATION TIER: AUTOMATED DEPLOY WORKER (MODO JOB CLI EFÊMERO)
   # ----------------------------------------------------------------------------
   appserver_worker:
-    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.5  # 🏷️ Nova nomenclatura padronizada
+    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.5
     container_name: protheus_worker
     profiles:
       - worker
@@ -424,7 +441,7 @@ services:
   # APPLICATION TIER: GITOPS ADVPL/TLPP CODE COMPILER LAYER (COMPILAÇÃO AUTOMÁTICA)
   # ----------------------------------------------------------------------------
   appserver_compiler:
-    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.5  # 🚀 Reaproveita a mesma imagem especialista
+    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.5
     container_name: protheus_compiler
     profiles:
       - compile
@@ -472,3 +489,4 @@ volumes:
   protheus_data:
   protheus_log:
   webapp_shared_module: {}
+  protheus_printer_volume: {}
