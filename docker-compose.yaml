@@ -26,7 +26,7 @@ services:
     restart: always
 
   postgres_db:
-    build: ./databases/postgres
+    image: rodrigomicrosiga/postgres-dev:16
     container_name: protheus_postgres
     profiles:
       - postgres
@@ -50,7 +50,7 @@ services:
     restart: always
 
   mssql_db:
-    build: ./databases/mssql
+    image: rodrigomicrosiga/mssql-dev:2025-CU7
     container_name: protheus_mssql
     profiles:
       - mssql
