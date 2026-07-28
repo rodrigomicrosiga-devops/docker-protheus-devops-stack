@@ -177,7 +177,7 @@ services:
       - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
       - APP_PORT_MULTI=${CORE_PORT_MULTI}
       - APP_MONITOR_PORT=${APP_MONITOR_PORT}
-      - CUSTOM_RPO_NAME=${CUSTOM_RPO_NAME:-custom}
+      - RPO_CUSTOM_NAME=${CUSTOM_RPO_NAME:-custom}
     volumes:
       - ./protheus/apo:/totvs/protheus/apo
       - protheus_system:/totvs/protheus/system
@@ -237,7 +237,7 @@ services:
       - REST_PREP_ENV=${REST_PREP_ENV}
       - REST_INSTANCES=${REST_INSTANCES}
       - REST_URI=${REST_URI}
-      - CUSTOM_RPO_NAME=${CUSTOM_RPO_NAME:-custom}
+      - RPO_CUSTOM_NAME=${CUSTOM_RPO_NAME:-custom}
     volumes:
       - ./protheus/apo:/totvs/protheus/apo
       - protheus_system:/totvs/protheus/system
@@ -285,7 +285,7 @@ services:
       - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
       - APP_PORT_MULTI=${TELNET_PORT_MULTI}
       - TELNET_PORT=${TELNET_PORT}
-      - CUSTOM_RPO_NAME=${CUSTOM_RPO_NAME:-custom}
+      - RPO_CUSTOM_NAME=${CUSTOM_RPO_NAME:-custom}
     volumes:
       - ./protheus/apo:/totvs/protheus/apo
       - protheus_system:/totvs/protheus/system
@@ -379,7 +379,7 @@ services:
       - DBACCESS_SERVER=${DBACCESS_SERVER}
       - LICENSE_SERVER=${LICENSE_SERVER}
       - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
-      - CUSTOM_RPO_NAME=${CUSTOM_RPO_NAME:-custom}
+      - RPO_CUSTOM_NAME=${CUSTOM_RPO_NAME:-custom}
     volumes:
       - ./protheus/apo:/totvs/protheus/apo
       - protheus_system:/totvs/protheus/system
