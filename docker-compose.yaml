@@ -421,7 +421,7 @@ services:
       - UPD_USER=${UPD_USER:-admin}
       - UPD_PASSWORD=${UPD_PASSWORD:-senha}
       - UPD_SIMULACAO=${UPD_SIMULACAO:-false}
-      - UPD_EMPRESAS=${UPD_EMPRESAS:-"99"}
+      - UPD_EMPRESAS=${UPD_EMPRESAS:-99}
     volumes:
       - ./protheus/apo:/totvs/protheus/apo
       - protheus_system:/totvs/protheus/system

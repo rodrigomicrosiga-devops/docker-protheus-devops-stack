@@ -202,7 +202,8 @@ if [ "$SERVICE" = "worker" ] || [ "$SERVICE" = "compile" ] || [ "$SERVICE" = "up
             sleep 5
         done
         set -e
-        docker compose --env-file .env.protheus --env-file "$ENV_SPEC" stop appserver_upddistr rm -f appserver_upddistr 2>/dev/null || true
+        docker compose --env-file .env.protheus --env-file "$ENV_SPEC" stop appserver_upddistr 2>/dev/null || true
+        docker compose --env-file .env.protheus --env-file "$ENV_SPEC" rm -f appserver_upddistr 2>/dev/null || true
     fi
 
     echo "🔄 [DevOps] Restaurando o ecossistema de produção original..."
