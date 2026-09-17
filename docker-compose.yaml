@@ -8,7 +8,7 @@ services:
   # INFRA & CONNECTIVITY TIER (Sempre iniciados)
   # ----------------------------------------------------------------------------
   license_server:
-    image: rodrigomicrosiga/license-dev:3.7.1
+    image: rodrigomicrosiga/license-dev:3.7.2
     container_name: protheus_license
     networks:
       - protheus_network
@@ -157,7 +157,7 @@ services:
   # APPLICATION TIER: TOTVS APPSERVER CORE MASTER (Sempre iniciado com a stack)
   # ----------------------------------------------------------------------------
   appserver_core:
-    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    image: rodrigomicrosiga/appserver-dev:24.3.1.9
     container_name: protheus_core
     networks:
       - protheus_network
@@ -212,7 +212,7 @@ services:
   # APPLICATION TIER: SPECIALIST SERVICES (Perfis dedicados sob demanda estrita)
   # ----------------------------------------------------------------------------
   appserver_rest:
-    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    image: rodrigomicrosiga/appserver-dev:24.3.1.9
     container_name: protheus_rest
     profiles:
       - rest
@@ -263,7 +263,7 @@ services:
     command: ["rest"]
 
   appserver_telnet:
-    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    image: rodrigomicrosiga/appserver-dev:24.3.1.9
     container_name: protheus_telnet
     profiles:
       - telnet
@@ -363,7 +363,7 @@ services:
   # APPLICATION TIER: AUTOMATED DEPLOY WORKER (MODO JOB CLI EFÊMERO)
   # ----------------------------------------------------------------------------
   appserver_worker:
-    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.5
+    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.9
     container_name: protheus_worker
     profiles:
       - worker
@@ -400,7 +400,7 @@ services:
   # APPLICATION TIER: AUTOMATED DICTIONARY MIGRATOR (UPDDISTR JOB)
   # ----------------------------------------------------------------------------
   appserver_upddistr:
-    image: rodrigomicrosiga/appserver-dev:24.3.1.5
+    image: rodrigomicrosiga/appserver-dev:24.3.1.9
     container_name: protheus_upddistr
     profiles:
       - upddistr
@@ -441,7 +441,7 @@ services:
   # APPLICATION TIER: GITOPS ADVPL/TLPP CODE COMPILER LAYER (COMPILAÇÃO AUTOMÁTICA)
   # ----------------------------------------------------------------------------
   appserver_compiler:
-    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.5
+    image: rodrigomicrosiga/appserver-dev-worker:24.3.1.9
     container_name: protheus_compiler
     profiles:
       - compile
