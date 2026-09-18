@@ -95,8 +95,8 @@ fi
 if [ "$SERVICE" = "update" ]; then
     TARGET_UPDATE=$(echo "$3" | tr '[:upper:]' '[:lower:]')
     
-    if [ "$TARGET_UPDATE" != "core" ] && [ "$TARGET_UPDATE" != "rest" ] && [ "$TARGET_UPDATE" != "telnet" ] && [ "$TARGET_UPDATE" != "smartview" ] && [ "$TARGET_UPDATE" != "webapp" ] && [ "$TARGET_UPDATE" != "printer" ]; then
-        echo "❌ Uso correto para atualização: ./run.sh $SGBD update [core | rest | telnet | smartview | webapp | printer]"
+    if [ "$TARGET_UPDATE" != "core" ] && [ "$TARGET_UPDATE" != "rest" ] && [ "$TARGET_UPDATE" != "telnet" ] && [ "$TARGET_UPDATE" != "smartview" ] && [ "$TARGET_UPDATE" != "webapp" ] && [ "$TARGET_UPDATE" != "printer" ] && [ "$TARGET_UPDATE" != "webagent" ]; then
+        echo "❌ Uso correto para atualização: ./run.sh $SGBD update [core | rest | telnet | smartview | webapp | printer | webagent]"
         exit 1
     fi
 
@@ -105,6 +105,8 @@ if [ "$SERVICE" = "update" ]; then
         COMPOSE_SERVICE_NAME="protheus_webapp"
     elif [ "$TARGET_UPDATE" = "printer" ]; then
         COMPOSE_SERVICE_NAME="protheus_printer"
+    elif [ "$TARGET_UPDATE" = "webagent" ]; then
+        COMPOSE_SERVICE_NAME="protheus_webagent"
     elif [ "$TARGET_UPDATE" = "smartview" ]; then
         COMPOSE_SERVICE_NAME="smartview"
     else
@@ -119,6 +121,7 @@ if [ "$SERVICE" = "update" ]; then
     SMART_ACTIVE=$(docker compose --env-file .env.protheus --env-file "$ENV_SPEC" ps --status running --format json | grep -q "smartview" && echo "true" || echo "false")
     WEB_ACTIVE=$(docker compose --env-file .env.protheus --env-file "$ENV_SPEC" ps --status running --format json | grep -q "protheus_webapp" && echo "true" || echo "false")
     PRINTER_ACTIVE=$(docker compose --env-file .env.protheus --env-file "$ENV_SPEC" ps --status running --format json | grep -q "protheus_printer" && echo "true" || echo "false")
+    WEBAGENT_ACTIVE=$(docker compose --env-file .env.protheus --env-file "$ENV_SPEC" ps --status running --format json | grep -q "protheus_webagent" && echo "true" || echo "false")
 
     echo "🛑 [DevOps] Modo de Manutenção: Pausando serviços síncronos para evitar travamentos de arquivos..."
     [ "$CORE_ACTIVE" = "true" ]   && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" stop appserver_core
@@ -127,13 +130,15 @@ if [ "$SERVICE" = "update" ]; then
     [ "$SMART_ACTIVE" = "true" ]  && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" stop protheus_smartview 2>/dev/null || true
     [ "$WEB_ACTIVE" = "true" ]    && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" stop protheus_webapp 2>/dev/null || true
     [ "$PRINTER_ACTIVE" = "true" ] && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" stop protheus_printer 2>/dev/null || true
+    [ "$WEBAGENT_ACTIVE" = "true" ] && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" stop protheus_webagent 2>/dev/null || true
 
     echo "⚡ [DevOps] Atualizando o container [$COMPOSE_SERVICE_NAME] de forma isolada..."
     docker compose --env-file .env.protheus $ENV_SMARTVIEW --env-file "$ENV_SPEC" up -d --no-deps "$COMPOSE_SERVICE_NAME"
-    
+
     echo "🔄 [DevOps] Restabelecendo o ecossistema ativo anterior com a nova versão..."
     [ "$WEB_ACTIVE" = "true" ]    && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up -d protheus_webapp
     [ "$PRINTER_ACTIVE" = "true" ] && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up -d protheus_printer
+    [ "$WEBAGENT_ACTIVE" = "true" ] && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up -d protheus_webagent
     [ "$CORE_ACTIVE" = "true" ]   && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up -d appserver_core
     [ "$REST_ACTIVE" = "true" ]   && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up -d appserver_rest
     [ "$TELNET_ACTIVE" = "true" ] && docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up -d appserver_telnet
@@ -227,6 +232,9 @@ else
     elif [ "$SERVICE" = "printer" ]; then
         echo "🚀 [DevOps] Inicializando serviço do driver de relatórios [PRINTER]..."
         docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up --no-recreate -d protheus_printer
+    elif [ "$SERVICE" = "webagent" ]; then
+        echo "🚀 [DevOps] Inicializando serviço de entrega do WebAgent..."
+        docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up --no-recreate -d protheus_webagent
     elif [ -n "$SERVICE" ] && [ "$SERVICE" != "core" ]; then
         echo "🚀 [DevOps] Inicializando serviço especialista contínuo: [${SERVICE^^}]..."
         docker compose --env-file .env.protheus --env-file "$ENV_SPEC" up --no-recreate -d appserver_$SERVICE
@@ -238,7 +246,8 @@ else
             dbaccess \
             appserver_core \
             protheus_webapp \
-            protheus_printer
+            protheus_printer \
+            protheus_webagent
     fi
 fi
 

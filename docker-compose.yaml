@@ -157,6 +157,13 @@ services:
     volumes:
       - protheus_printer_volume:/mnt/printer_shared
 
+  protheus_webagent:
+    image: rodrigomicrosiga/webagent-dev:1.1.1
+    container_name: protheus_webagent
+    restart: unless-stopped
+    volumes:
+      - webagent_shared_module:/mnt/webagent_shared
+
   # ----------------------------------------------------------------------------
   # APPLICATION TIER: TOTVS APPSERVER CORE MASTER (Sempre iniciado com a stack)
   # ----------------------------------------------------------------------------
@@ -194,6 +201,7 @@ services:
       - webapp_shared_module:/tmp/webapp_shared:ro
       # 🚀 MONTAGEM NEUTRA: Copia de forma isolada sem mascarar a pasta binaria
       - protheus_printer_volume:/tmp/printer_shared:ro
+      - webagent_shared_module:/tmp/webagent_shared:ro
     cap_add:
       - SYS_RAWIO
     devices:
@@ -250,6 +258,7 @@ services:
       - webapp_shared_module:/tmp/webapp_shared:ro
       # 🚀 MONTAGEM NEUTRA: Copia de forma isolada sem mascarar a pasta binaria
       - protheus_printer_volume:/tmp/printer_shared:ro
+      - webagent_shared_module:/tmp/webagent_shared:ro
     cap_add:
       - SYS_RAWIO
     devices:
@@ -298,6 +307,7 @@ services:
       - webapp_shared_module:/tmp/webapp_shared:ro
       # 🚀 MONTAGEM NEUTRA: Copia de forma isolada sem mascarar a pasta binaria
       - protheus_printer_volume:/tmp/printer_shared:ro
+      - webagent_shared_module:/tmp/webagent_shared:ro
     cap_add:
       - SYS_RAWIO
     devices:
@@ -494,3 +504,4 @@ volumes:
   protheus_log:
   webapp_shared_module: {}
   protheus_printer_volume: {}
+  webagent_shared_module: {}
