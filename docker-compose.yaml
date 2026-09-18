@@ -133,7 +133,11 @@ services:
       - LICENSE_SERVER_HOST=${LICENSE_SERVER}
       - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
     ports:
-      - "${DBACCESS_PORT}:${DBACCESS_PORT}"
+      # Porta do host separada da porta interna: a 7890 do host é do serverlb do k3d
+      # (ver docs/HANDOFF.md do repo k8s-protheus-devops-stack). A porta interna segue
+      # DBACCESS_PORT -- nenhum appserver percebe diferença, todos falam com
+      # protheus_dbaccess:${DBACCESS_PORT} pela rede protheus_network.
+      - "${DBACCESS_HOST_PORT:-7891}:${DBACCESS_PORT}"
     restart: unless-stopped
 
   # ----------------------------------------------------------------------------
