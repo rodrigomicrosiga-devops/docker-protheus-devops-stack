@@ -13,8 +13,8 @@ services:
     networks:
       - protheus_network
     ports:
-      - "${LICENSE_SERVER_PORT}:${LICENSE_SERVER_PORT}"
-      - "8020:8020"
+      - "${HOST_BIND_IP:-127.0.0.2}:${LICENSE_SERVER_PORT}:${LICENSE_SERVER_PORT}"
+      - "${HOST_BIND_IP:-127.0.0.2}:8020:8020"
     cap_add:
       - SYS_RAWIO
     devices:
@@ -42,7 +42,7 @@ services:
       - DB_PASS=${DB_PASS}
       - POSTGRES_INITDB_ARGS=--data-checksums -c shared_buffers=512MB -c synchronous_commit=off
     ports:
-      - "${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}"
+      - "${HOST_BIND_IP:-127.0.0.2}:${POSTGRES_PORT:-5432}:${POSTGRES_PORT:-5432}"
     volumes:
       - pg_data:/var/lib/postgresql/data
     networks:
@@ -65,7 +65,7 @@ services:
       - DB_PASS=${DB_PASS}
       - MSSQL_MEMORY_LIMIT_MB=${MSSQL_MEMORY_LIMIT_MB:-3072}
     ports:
-      - "${MSSQL_PORT:-1433}:${MSSQL_PORT:-1433}"
+      - "${HOST_BIND_IP:-127.0.0.2}:${MSSQL_PORT:-1433}:${MSSQL_PORT:-1433}"
     volumes:
       - mssql_data:/var/opt/mssql
     ulimits:
@@ -93,7 +93,7 @@ services:
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
     ports:
-      - "${ORACLE_PORT:-1521}:${ORACLE_PORT:-1521}"
+      - "${HOST_BIND_IP:-127.0.0.2}:${ORACLE_PORT:-1521}:${ORACLE_PORT:-1521}"
     shm_size: '4gb'
     ulimits:
       nofile:
@@ -133,11 +133,13 @@ services:
       - LICENSE_SERVER_HOST=${LICENSE_SERVER}
       - LICENSE_SERVER_PORT=${LICENSE_SERVER_PORT}
     ports:
-      # Porta do host separada da porta interna: a 7890 do host é do serverlb do k3d
-      # (ver docs/HANDOFF.md do repo k8s-protheus-devops-stack). A porta interna segue
-      # DBACCESS_PORT -- nenhum appserver percebe diferença, todos falam com
-      # protheus_dbaccess:${DBACCESS_PORT} pela rede protheus_network.
-      - "${DBACCESS_HOST_PORT:-7891}:${DBACCESS_PORT}"
+      # Desde o ADR 0017 (repo k8s-protheus-devops-stack), o cluster k3d tem prioridade
+      # sobre a porta 7890 do host -- mas presa a 127.0.0.1, enquanto este Compose publica
+      # em HOST_BIND_IP (127.0.0.2 por padrão), então a 7890 nua volta a ser o default
+      # aqui sem colidir. A porta interna segue DBACCESS_PORT -- nenhum appserver percebe
+      # diferença, todos falam com protheus_dbaccess:${DBACCESS_PORT} pela rede
+      # protheus_network.
+      - "${HOST_BIND_IP:-127.0.0.2}:${DBACCESS_HOST_PORT:-7890}:${DBACCESS_PORT}"
     restart: unless-stopped
 
   # ----------------------------------------------------------------------------
@@ -173,8 +175,8 @@ services:
     networks:
       - protheus_network
     ports:
-      - "${CORE_PORT_MULTI}:${CORE_PORT_MULTI}"
-      - "${APP_MONITOR_PORT}:${APP_MONITOR_PORT}"
+      - "${HOST_BIND_IP:-127.0.0.2}:${CORE_PORT_MULTI}:${CORE_PORT_MULTI}"
+      - "${HOST_BIND_IP:-127.0.0.2}:${APP_MONITOR_PORT}:${APP_MONITOR_PORT}"
     env_file:
       - .env.protheus
       - .env.postgres
@@ -231,8 +233,8 @@ services:
     networks:
       - protheus_network
     ports:
-      - "${REST_PORT_MULTI}:${REST_PORT_MULTI}"
-      - "${REST_HTTP_PORT}:${REST_HTTP_PORT}"
+      - "${HOST_BIND_IP:-127.0.0.2}:${REST_PORT_MULTI}:${REST_PORT_MULTI}"
+      - "${HOST_BIND_IP:-127.0.0.2}:${REST_HTTP_PORT}:${REST_HTTP_PORT}"
     env_file:
       - .env.protheus
       - .env.postgres
@@ -283,8 +285,8 @@ services:
     networks:
       - protheus_network
     ports:
-      - "${TELNET_PORT_MULTI}:${TELNET_PORT_MULTI}"
-      - "${TELNET_PORT}:${TELNET_PORT}"
+      - "${HOST_BIND_IP:-127.0.0.2}:${TELNET_PORT_MULTI}:${TELNET_PORT_MULTI}"
+      - "${HOST_BIND_IP:-127.0.0.2}:${TELNET_PORT}:${TELNET_PORT}"
     env_file:
       - .env.protheus
       - .env.postgres
@@ -363,8 +365,8 @@ services:
     networks:
       - protheus_network
     ports:
-      - "7019:7019"
-      - "7017:7017"
+      - "${HOST_BIND_IP:-127.0.0.2}:7019:7019"
+      - "${HOST_BIND_IP:-127.0.0.2}:7017:7017"
     privileged: true
     volumes:
       - /sys/fs/cgroup:/sys/fs/cgroup:rw
